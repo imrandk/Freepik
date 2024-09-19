@@ -1,0 +1,175 @@
+const maxPosts = 16; // Adjust this value as needed
+let currentIndex = 0;
+let executionCount = 0; // Counter to keep track of how many times the function has executed
+let results = ''; // Variable to accumulate results
+
+function simulateClick(element) {
+    try {
+        if (element) {
+            element.click();
+        } else {
+            console.error('Element is undefined or null.');
+        }
+    } catch (error) {
+        console.error('Failed to simulate click:', error);
+    }
+}
+
+function extractFileName(url) {
+    // Extract file name from the URL
+    const segments = url.split('/');
+    const fileName = segments.pop().split('?')[0]; // Remove query parameters if present
+    
+    // Decode URL-encoded characters
+    const decodedFileName = decodeURIComponent(fileName);
+
+    // Convert the format from '1-11.jpg' or '1 -11.jpg' to '1 (11).jpg'
+    return decodedFileName.replace(/(\d+)\s*[-]\s*(\d+)(\.\w+)$/, '$1 ($2)$3');
+}
+
+function getTextArea() {
+    return document.querySelector('textarea[data-cy="editTitle"]');
+}
+
+function shiftToNextPost() {
+    const posts = document.querySelectorAll('#main section div div div div img');
+    
+    if (posts.length > 0) {
+        if (currentIndex >= posts.length) {
+            currentIndex = 0;
+        }
+
+        const currentPost = posts[currentIndex];
+        const fileName = extractFileName(currentPost.src);
+        const textarea = getTextArea();
+
+        if (currentPost && textarea) {
+            currentPost.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            setTimeout(() => {
+                simulateClick(currentPost);
+
+                // Wait for the title to be updated
+                setTimeout(() => {
+                    const updatedTextAreaValue = textarea.value.trim();
+                    
+                    // Accumulate results
+                    results += `File Name: ${fileName}\nTitle: ${updatedTextAreaValue}\n\n`;
+
+                    // Update the textarea with the file name
+                    textarea.value = `${fileName}\n${updatedTextAreaValue}`;
+
+                    currentIndex++; // Move to the next post
+                    executionCount++;
+
+                    // Stop after the maximum number of posts
+                    if (executionCount >= maxPosts) {
+                        showModal(results); // Show results in a modal
+                    } else {
+                        shiftToNextPost(); // Process the next post
+                    }
+                }, 1000); // Adjust this delay if needed to wait for the title update
+            }, 500); // Adjust this delay to ensure synchronization after click
+        } else {
+            console.error('Current post or textarea element not found.');
+        }
+    } else {
+        console.error('No posts found on the page.');
+    }
+}
+
+function showModal(text) {
+    // Create modal elements
+    const modal = document.createElement('div');
+    const modalContent = document.createElement('div');
+    const textArea = document.createElement('textarea');
+    const copyButton = document.createElement('button');
+    const cancelButton = document.createElement('button');
+
+    modal.style.position = 'fixed';
+    modal.style.top = '50%';
+    modal.style.left = '50%';
+    modal.style.transform = 'translate(-50%, -50%)';
+    modal.style.backgroundColor = 'white';
+    modal.style.border = '1px solid #ccc';
+    modal.style.boxShadow = '0px 0px 10px rgba(0,0,0,0.1)';
+    modal.style.zIndex = 1000;
+    modal.style.width = '400px'; // Adjust width as needed
+    modal.style.height = 'auto'; // Ensure height is auto to fit content
+
+    modalContent.style.padding = '10px';
+    modalContent.style.display = 'flex';
+    modalContent.style.flexDirection = 'column';
+    modalContent.style.alignItems = 'stretch';
+
+    textArea.value = text;
+    textArea.style.width = '100%'; // Fit the width of the modal
+    textArea.style.height = '150px'; // Adjust height as needed
+    textArea.style.marginBottom = '10px';
+    textArea.readOnly = true;
+
+    copyButton.textContent = 'Copy';
+    copyButton.style.padding = '10px';
+    copyButton.style.border = 'none';
+    copyButton.style.backgroundColor = '#4CAF50';
+    copyButton.style.color = 'white';
+    copyButton.style.cursor = 'pointer';
+
+    cancelButton.textContent = 'Cancel';
+    cancelButton.style.padding = '10px';
+    cancelButton.style.border = 'none';
+    cancelButton.style.backgroundColor = '#f44336';
+    cancelButton.style.color = 'white';
+    cancelButton.style.cursor = 'pointer';
+    cancelButton.style.marginTop = '10px';
+
+    // Append elements
+    modalContent.appendChild(textArea);
+    modalContent.appendChild(copyButton);
+    modalContent.appendChild(cancelButton);
+    modal.appendChild(modalContent);
+    document.body.appendChild(modal);
+
+    // Add event listener to copy button
+    copyButton.addEventListener('click', () => {
+        textArea.select();
+        document.execCommand('copy');
+        alert('Text copied to clipboard!');
+        document.body.removeChild(modal); // Remove the modal after copying
+    });
+
+    // Add event listener to cancel button
+    cancelButton.addEventListener('click', () => {
+        document.body.removeChild(modal); // Remove the modal when cancel button is clicked
+    });
+
+    // Prevent clicks outside the box from closing it
+    modal.addEventListener('click', (event) => {
+        event.stopPropagation(); // Prevent closing modal when clicking inside it
+    });
+
+    // Prevent the modal from closing when clicking inside
+    modalContent.addEventListener('click', (event) => {
+        event.stopPropagation(); // Prevent modal from closing
+    });
+}
+
+// Optional: Use MutationObserver to detect when new posts are loaded
+const observer = new MutationObserver((mutationsList) => {
+    for (const mutation of mutationsList) {
+        if (mutation.type === 'childList') {
+            // Optional: Handle new posts if dynamically loaded
+        }
+    }
+});
+
+// Start observing the container element
+const container = document.querySelector('#main section');
+if (container) {
+    observer.observe(container, { childList: true, subtree: true });
+} else {
+    console.error('Container element for observing not found.');
+}
+
+// Start processing posts
+shiftToNextPost();
