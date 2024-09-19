@@ -1,0 +1,49 @@
+const maxPosts = 16, posts = document.querySelectorAll('#main section div div div div img');
+let currentIndex = 0, executionCount = 0, results = '';
+
+function simulateClick(element) { element?.click(); }
+
+function extractFileName(url) {
+    return decodeURIComponent(url.split('/').pop().split('?')[0])
+           .replace(/(\d+)\s*-\s*(\d+)(\.\w+)$/, '$1 ($2)$3');
+}
+
+function shiftToNextPost() {
+    if (executionCount >= maxPosts || !posts.length) return showModal(results);
+
+    const post = posts[currentIndex] || posts[0],
+          fileName = extractFileName(post.src),
+          textarea = document.querySelector('textarea[data-cy="editTitle"]');
+
+    post.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    simulateClick(post);
+
+    setTimeout(() => {
+        const updatedValue = textarea?.value.trim() || '';
+        results += `File Name: ${fileName}\nTitle: ${updatedValue}\n\n`;
+        textarea.value = `${fileName}\n${updatedValue}`;
+        executionCount++;
+        currentIndex++;
+        shiftToNextPost();
+    }, 1000);
+}
+
+function showModal(text) {
+    const modal = document.createElement('div'),
+          content = `<textarea readonly style="width:100%;height:150px;">${text}</textarea>
+                     <button id="copyBtn">Copy</button>
+                     <button id="cancelBtn">Cancel</button>`;
+    
+    modal.innerHTML = `<div style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+                      background:white;padding:10px;width:400px;border:1px solid #ccc;">${content}</div>`;
+    document.body.appendChild(modal);
+
+    document.getElementById('copyBtn').onclick = () => {
+        navigator.clipboard.writeText(text);
+        alert('Text copied!');
+        document.body.removeChild(modal);
+    };
+    document.getElementById('cancelBtn').onclick = () => document.body.removeChild(modal);
+}
+
+shiftToNextPost();
