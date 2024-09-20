@@ -1,4 +1,4 @@
-const maxPosts = 16, posts = document.querySelectorAll('#main section div div div div img');
+const maxPosts = 40, posts = document.querySelectorAll('#main section div div div div img');
 let currentIndex = 0, executionCount = 0, results = '';
 
 function simulateClick(element) { element?.click(); }
@@ -25,7 +25,7 @@ function shiftToNextPost() {
         executionCount++;
         currentIndex++;
         shiftToNextPost();
-    }, 1000);
+    }, 300);
 }
 
 function showModal(text) {
@@ -40,7 +40,7 @@ function showModal(text) {
 
     document.getElementById('copyBtn').onclick = () => {
         navigator.clipboard.writeText(text);
-        alert('Text copied!');
+        // Removed the alert for text copied
         document.body.removeChild(modal);
     };
     document.getElementById('cancelBtn').onclick = () => document.body.removeChild(modal);
