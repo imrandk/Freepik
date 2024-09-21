@@ -1,0 +1,67 @@
+const maxPosts = 40, posts = document.querySelectorAll('#main section div div div div img');
+let currentIndex = 0, executionCount = 0, results = '';
+
+function simulateClick(element) { element?.click(); }
+
+function extractFileName(url) {
+    return decodeURIComponent(url.split('/').pop().split('?')[0])
+           .replace(/(\d+)\s*-\s*(\d+)(\.\w+)$/, '$1 ($2)$3');
+}
+
+function getTagsAsString() {
+    const spans = document.querySelectorAll('span.inline-block.v-alignc'); // Adjust selector as needed
+    const tags = Array.from(spans)
+        .map(span => span.textContent.trim())
+        .filter(tag => tag !== '' && 
+            !tag.includes('My contributor profile') && 
+            !tag.includes('My billing information') && 
+            !tag.includes('My fiscal information') && 
+            !tag.includes('Logout') &&
+            !tag.includes('Releases')) // Filter out unwanted text
+        .join(', '); // Join with a comma and space
+    return tags;
+}
+
+function shiftToNextPost() {
+    if (executionCount >= maxPosts || !posts.length) return showModal(results);
+
+    const post = posts[currentIndex] || posts[0],
+          fileName = extractFileName(post.src),
+          textarea = document.querySelector('textarea[data-cy="editTitle"]');
+
+    post.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    simulateClick(post);
+
+    setTimeout(() => {
+        const updatedValue = textarea?.value.trim() || '';
+        const tags = getTagsAsString(); // Use the function to get tags
+        results += `File Name: ${fileName}\nTitle: ${updatedValue}\nTags: ${tags}\n\n`;
+
+        // Update the textarea with the results
+        textarea.value = `${fileName}\n${updatedValue}\nTags: ${tags}`;
+        
+        executionCount++;
+        currentIndex++;
+        shiftToNextPost();
+    }, 300);
+}
+
+function showModal(text) {
+    const modal = document.createElement('div'),
+          content = `<textarea readonly style="width:100%;height:150px;">${text}</textarea>
+                     <button id="copyBtn">Copy</button>
+                     <button id="cancelBtn">Cancel</button>`;
+    
+    modal.innerHTML = `<div style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+                      background:white;padding:10px;width:400px;border:1px solid #ccc;">${content}</div>`;
+    document.body.appendChild(modal);
+
+    document.getElementById('copyBtn').onclick = () => {
+        navigator.clipboard.writeText(text);
+        // Removed the alert for text copied
+        document.body.removeChild(modal);
+    };
+    document.getElementById('cancelBtn').onclick = () => document.body.removeChild(modal);
+}
+
+shiftToNextPost();
